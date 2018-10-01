@@ -6,7 +6,7 @@
   "types": "./dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@gitlab.com/wormen/gridfs-store.git"
+    "url": "git+ssh://git@github.com/wormen/gridfs-store.git"
   },
   "bugs": {
     "url": "https://github.com/wormen/gridfs-store/issues/new"
