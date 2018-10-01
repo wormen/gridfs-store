@@ -29,7 +29,6 @@ The name of the database to be used
 ##### replicaSet
 The name of the replica to be used
 
-##### mongoClientOptions
 
 <br>
 
