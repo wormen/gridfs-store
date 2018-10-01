@@ -13,17 +13,43 @@ OR
 
 `yarn add gridfs-store`
 
+## Parameters
+##### hosts
+Specify the list of hosts to connect to. Format
+```js
+[
+  {host: 'host1', port: 27017},
+  {host: 'host2', port: 27017}
+]
+```
+
+##### database
+The name of the database to be used
+
+##### replicaSet
+The name of the replica to be used
+
+##### mongoClientOptions
+
+<br>
+
 ## Usage
 
-```ecmascript 6
+```js
+import * as path from 'path';
 import Store from 'gridfs-store';
 
 (async () => {
+  const store = new Store({
+    database: 'testDatabase'
+  });
+  
   await store.connect();
   
   const filename = 'testDir/test.txt';
+  const uploadFilePath = path.resolve(__dirname, 'test.txt');
   
-  let item = await store.uploadFile(path.resolve(__dirname, 'test.txt'), {filename}).then(() => {
+  let item = await store.uploadFile(uploadFilePath, {filename}).then(() => {
     console.log('saved!');
   });
   
@@ -49,7 +75,7 @@ By this method you will simple get the meta-object from the MongoDB as a Promise
 If nothing found at the Database, then it will reject and the catch-block will be executed.
 
 ```js
-gridFS.findById("59e085f272882d728e2fa4c2").then((item) => {
+store.findById("59e085f272882d728e2fa4c2").then((item) => {
     console.log(item);
 }).catch((err) => {
     console.error(err);
@@ -62,7 +88,7 @@ You will get the file simple written to the filesystem directly from the Databas
 If nothing found at the Database, then it will reject and the catch-block will be executed.
 
 ```js
-gridFS.downloadFile("59e085f272882d728e2fa4c2", {
+store.downloadFile("59e085f272882d728e2fa4c2", {
     filename: "test.gif",
     targetDir: "/tmp"
 }).then((downloadedFilePath) => {
@@ -81,7 +107,7 @@ This method is very useful, to stream the content directly to the user.
 
 For example with express:
 ```js
-return gridFS.readFileStream(req.params.id).then((item) => {
+return store.readFileStream(req.params.id).then((item) => {
     item
     .once("error", () => {
         return res.status(400).end();
