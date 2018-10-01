@@ -1,0 +1,48 @@
+{
+  "name": "gridfs-store",
+  "version": "1.0.0",
+  "description": "Uses the native GridFSBucket-Api from the new MongoDB NodeJS Driver and wrap it as Promise-Objects",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/wormen/gridfs-store.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wormen/gridfs-store/issues/new"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "prepare": "npm run build"
+  },
+  "author": "Oleg Bogdanov",
+  "license": "GPL-3.0",
+  "keywords": [
+    "mongodb",
+    "gridfs",
+    "gridFSBucket",
+    "gridfs-bucket",
+    "nodejs",
+    "es6",
+    "typescript",
+    "mongo",
+    "async"
+  ],
+  "dependencies": {
+    "md5-file": "^4.0.0",
+    "mime": "^2.3.1",
+    "mongodb": "^3.1.6",
+    "os-tmpdir": "^1.0.2",
+    "unique-filename": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/mime": "^2.0.0",
+    "@types/mongodb": "^3.1.9",
+    "@types/node": "^10.11.3",
+    "@types/os-tmpdir": "^1.0.0",
+    "rimraf": "^2.6.2",
+    "ts-node": "^7.0.1",
+    "tslint": "^5.11.0",
+    "typescript": "^3.1.1"
+  }
+}
