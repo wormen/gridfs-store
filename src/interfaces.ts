@@ -1,11 +1,11 @@
 import {ObjectID, MongoClientOptions} from 'mongodb';
 
-interface IHost {
+export interface IHost {
   host: string;
   port: number | string;
 }
 
-interface IOptions {
+export interface IOptions {
   hosts?: IHost[];
   database?: string;
   replicaSet?: string;
@@ -13,17 +13,17 @@ interface IOptions {
   mongoClientOptions?: MongoClientOptions;
 }
 
-interface IMongoQuery {
+export interface IMongoQuery {
   replicaSet?: string;
   authSource?: string;
 }
 
-interface IParams {
+export interface IParams {
   filename?: string;
   md5?: string;
 }
 
-interface IGridFSObject {
+export interface IGridFSObject {
   _id: ObjectID;
   length: number;
   chunkSize: number;
@@ -34,7 +34,7 @@ interface IGridFSObject {
   metadata: object;
 }
 
-interface IGridFSWriteOption {
+export interface IGridFSWriteOption {
   filename: string;
   chunkSizeBytes?: number;
   metadata?: any;
@@ -42,17 +42,15 @@ interface IGridFSWriteOption {
   aliases?: string[];
 }
 
-interface IDownloadOptions {
+export interface IDownloadOptions {
   filename: boolean | string;
   targetDir?: string;
 }
 
-export {
-  IHost,
-  IOptions,
-  IParams,
-  IMongoQuery,
-  IGridFSObject,
-  IGridFSWriteOption,
-  IDownloadOptions
-};
+export interface IDirectory {
+  _id?: ObjectID;
+  parentId?: null | ObjectID;
+  created?: Date;
+  name: string;
+  path: string;
+}

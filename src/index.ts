@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as URL from 'url';
 import * as mime from 'mime';
+import * as path from 'path';
+import async from 'async';
 
 import osTmpdir = require('os-tmpdir');
 import {Stream} from 'stream';
@@ -12,9 +14,10 @@ import {
 } from 'mongodb';
 
 import {
-  IOptions, IMongoQuery, IDownloadOptions, IParams,
+  IOptions, IMongoQuery, IDownloadOptions, IParams, IDirectory,
   IGridFSWriteOption, IGridFSObject
 } from './interfaces';
+import {rejects} from "assert";
 
 const defaultOptions: IOptions = {
   hosts: [
@@ -25,9 +28,9 @@ const defaultOptions: IOptions = {
 
 export default class GridStore {
   private opts: IOptions = defaultOptions;
-  private connection: Db;
+  connection: Db;
 
-  constructor(opts: IOptions, private readonly bucketName: string = 'fs') {
+  constructor(opts: IOptions, readonly bucketName: string = 'fs') {
     if (Object.keys(opts).length > 0) {
       this.opts = Object.assign({}, defaultOptions, opts);
     }
@@ -181,20 +184,31 @@ export default class GridStore {
    * @param options
    */
   public writeFileStream(stream: Stream, options: IGridFSWriteOption): Promise<IGridFSObject> {
-    return new Promise((resolve, reject) => stream
-      .pipe(this.bucket.openUploadStream(options.filename, {
+    return new Promise(async (resolve, reject) => {
+
+      let fileOpts = {
         aliases: options.aliases,
         chunkSizeBytes: options.chunkSizeBytes,
         contentType: options.contentType,
         metadata: options.metadata,
-      }))
-      .on('error', async (err) => {
-        reject(err);
-      })
-      .on('finish', async (item: IGridFSObject) => {
-        resolve(item);
-      }),
-    );
+      };
+
+      await this.directory.create(path.dirname(options.filename));
+      await this.directory.getPath(path.dirname(options.filename)).then(doc => {
+        fileOpts.metadata = Object.assign({}, fileOpts.metadata, {
+          directoryId: doc._id
+        });
+      });
+
+      stream
+        .pipe(this.bucket.openUploadStream(options.filename, fileOpts))
+        .on('error', async (err) => {
+          reject(err);
+        })
+        .on('finish', async (item: IGridFSObject) => {
+          resolve(item);
+        })
+    });
   }
 
   /**
@@ -220,6 +234,8 @@ export default class GridStore {
     };
 
     options.contentType = options.contentType || mime.getType(uploadFilePath);
+
+    await this.directory.create(path.dirname(uploadFilePath));
 
     return await this.writeFileStream(fs.createReadStream(uploadFilePath), options)
       .then(tryDeleteFile)
@@ -260,6 +276,214 @@ export default class GridStore {
 
       const doc = await this.findOne(params);
       resolve(!(doc === null));
+    });
+  }
+
+  get directory() {
+    return new Directory(this.opts, this.bucketName);
+  }
+}
+
+class Directory extends GridStore {
+  constructor(opts: IOptions, readonly bucketName: string = 'fs') {
+    super(opts, bucketName);
+  }
+
+  get collection(): any {
+    return this.connection.collection([this.bucketName, 'directory'].join('.'))
+  }
+
+  private async _checkConnect() {
+    if (!this.connection) {
+      await this.connect();
+
+      this.collection.createIndex({name: 1});
+      this.collection.createIndex({path: 1});
+      this.collection.createIndex({name: 1, path: 1}, {unique: 1});
+    }
+  }
+
+  exists(path: string): Promise<boolean> {
+    return new Promise(async (resolve, reject) => {
+      await this._checkConnect();
+
+      this.collection.findOne({path}, (error, raw) => {
+        if (error) {
+          return reject(error);
+        }
+        resolve(raw !== null && typeof raw === 'object' && raw.hasOwnProperty('_id'));
+      });
+    });
+  }
+
+  create(directoryPath: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      await this._checkConnect();
+
+      let obj: IDirectory = {
+        path: directoryPath,
+        name: '',
+        parentId: null,
+        created: new Date()
+      };
+
+      if (directoryPath !== '/') {
+        obj.name = path.basename(directoryPath);
+      }
+
+      const names: IDirectory[] = directoryPath.split('/')
+        .filter((item, idx) => {
+          if (idx > 0 && item === '') {
+            return false;
+          }
+          return true;
+        })
+        .reduce((arr, name) => {
+          arr.push({
+            path: arr.length === 0 ? '/' : path.resolve(arr[arr.length - 1].path, name),
+            created: new Date(),
+            name
+          });
+          return arr;
+        }, []);
+
+      const save = (data: IDirectory, cb?: (error, raw) => void): Promise<any> => {
+        return new Promise((resolve, reject) => {
+          this.collection.insertOne(data, (err, raw) => {
+            if (cb) {
+              cb(err, raw);
+            } else {
+              if (err) {
+                if (String(err.message).includes('duplicate key')) {
+                  return resolve();
+                }
+                return reject(err);
+              }
+              resolve();
+            }
+          });
+        });
+      };
+
+      if (names.length === 1 && ['', '/'].includes(names[0].path)) {
+        save(obj, (err) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
+      } else {
+        let pid = null;
+        for (let item of names) {
+          if (item.path !== '/') {
+            item.parentId = pid;
+          }
+
+          if (!item.parentId && item.path !== '/') {
+            await this.getPath(path.dirname(item.path)).then(doc => {
+              item.parentId = doc._id;
+            });
+          }
+
+          await save(item).then(raw => {
+            if (raw && raw.insertedId) {
+              pid = raw.insertedId;
+            }
+          });
+        }
+
+        resolve();
+      }
+
+    });
+  }
+
+  getPath(path: string): Promise<IDirectory> {
+    return new Promise(async (resolve, reject) => {
+      await this._checkConnect();
+      this.collection.findOne({path}, (err, doc) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve(doc);
+      });
+    });
+  }
+
+  private _getChildrens(parentId): Promise<IDirectory[]> {
+    return new Promise((resolve, reject) => {
+      this.collection.find({parentId}).toArray((err, list) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve(list);
+      });
+    });
+  }
+
+  listByPath(path: string) {
+    return new Promise(async (resolve, reject) => {
+      await this._checkConnect();
+
+      await this.getPath(path)
+        .then(doc => {
+          if (doc && doc._id) {
+            this._getChildrens(doc._id).then(list => resolve(list)).catch(reject);
+          } else {
+            resolve([]);
+          }
+        })
+        .catch(reject);
+    });
+  }
+
+  listById(id: string) {
+    return new Promise(async (resolve, reject) => {
+      await this._checkConnect();
+
+      this._getChildrens(new ObjectID(id)).then(resolve).catch(reject);
+    });
+  }
+
+  // move(oldPath, newPath): Promise<void> {
+  //   return new Promise(async (resolve, reject) => {
+  //     await this._checkConnect();
+  //
+  //     this.collection.update({path: oldPath}, {
+  //       $set: {
+  //         path: newPath,
+  //         name: path.basename(newPath)
+  //       }
+  //     }, (err, raw) => {
+  //       if (err) {
+  //         return reject(err);
+  //       }
+  //       resolve();
+  //     });
+  //   });
+  // }
+
+  remove(path: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      await this._checkConnect();
+      this.collection.deleteMany({path}, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve();
+      });
+    });
+  }
+
+  removeById(id: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      await this._checkConnect();
+      this.collection.deleteOne({_id: new ObjectID(id)}, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve();
+      });
     });
   }
 }
