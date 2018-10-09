@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as URL from 'url';
 import * as mime from 'mime';
 import * as path from 'path';
-import async from 'async';
 
 import osTmpdir = require('os-tmpdir');
 import {Stream} from 'stream';
@@ -17,7 +16,6 @@ import {
   IOptions, IMongoQuery, IDownloadOptions, IParams, IDirectory,
   IGridFSWriteOption, IGridFSObject
 } from './interfaces';
-import {rejects} from "assert";
 
 const defaultOptions: IOptions = {
   hosts: [
