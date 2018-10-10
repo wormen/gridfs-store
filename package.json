@@ -1,6 +1,6 @@
 {
   "name": "gridfs-store",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "description": "Uses the native GridFSBucket-Api from the new MongoDB NodeJS Driver and wrap it as Promise-Objects",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc",
-    "prepare": "npm run build"
+    "prepublish": "npm run build"
   },
   "author": "Oleg Bogdanov",
   "license": "GPL-3.0",

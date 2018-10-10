@@ -133,6 +133,16 @@ export default class GridStore {
   }
 
   /**
+   * Returns a stream of a file from the GridFS.
+   * @param {string} path
+   * @return {Promise<GridFSBucketReadStream>}
+   */
+  public async readFileStreamByPath(path: string): Promise<GridFSBucketReadStream> {
+    const object = await this.findOne({filename: path});
+    return this.bucket.openDownloadStream(object._id);
+  }
+
+  /**
    * Save the File from the GridFs to the filesystem and get the Path back
    * @param {string} id
    * @param {IDownloadOptions} options
