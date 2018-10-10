@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as URL from 'url';
 import * as mime from 'mime';
 import * as path from 'path';
+import * as async from 'async';
 
 import osTmpdir = require('os-tmpdir');
 import {Stream} from 'stream';
@@ -25,8 +26,11 @@ const defaultOptions: IOptions = {
 };
 
 export default class GridStore {
-  private opts: IOptions = defaultOptions;
   connection: Db;
+  private opts: IOptions = defaultOptions;
+
+  private _queue = async.queue(({action, item}, done) => {
+  }, 1);
 
   constructor(opts: IOptions, readonly bucketName: string = 'fs') {
     if (Object.keys(opts).length > 0) {
@@ -36,6 +40,10 @@ export default class GridStore {
 
   public get bucket(): GridFSBucket {
     return new GridFSBucket(this.connection, {bucketName: this.bucketName});
+  }
+
+  private _addQueue(action: string, item: object): void {
+    this._queue.push({action, item});
   }
 
   /**
@@ -233,7 +241,7 @@ export default class GridStore {
 
     options.contentType = options.contentType || mime.getType(uploadFilePath);
 
-    await this.directory.create(path.dirname(uploadFilePath));
+    await this.directory.create(path.dirname(options.filename));
 
     return await this.writeFileStream(fs.createReadStream(uploadFilePath), options)
       .then(tryDeleteFile)
@@ -447,23 +455,13 @@ class Directory extends GridStore {
   //   return new Promise(async (resolve, reject) => {
   //     await this._checkConnect();
   //
-  //     this.collection.update({path: oldPath}, {
-  //       $set: {
-  //         path: newPath,
-  //         name: path.basename(newPath)
-  //       }
-  //     }, (err, raw) => {
-  //       if (err) {
-  //         return reject(err);
-  //       }
-  //       resolve();
-  //     });
   //   });
   // }
 
   remove(path: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       await this._checkConnect();
+      // todo remove children folders and files
       this.collection.deleteMany({path}, (err) => {
         if (err) {
           return reject(err);
@@ -476,6 +474,7 @@ class Directory extends GridStore {
   removeById(id: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       await this._checkConnect();
+      // todo remove children folders and files
       this.collection.deleteOne({_id: new ObjectID(id)}, (err) => {
         if (err) {
           return reject(err);

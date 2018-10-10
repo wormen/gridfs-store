@@ -1,6 +1,6 @@
 {
   "name": "gridfs-store",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Uses the native GridFSBucket-Api from the new MongoDB NodeJS Driver and wrap it as Promise-Objects",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,6 +29,7 @@
     "async"
   ],
   "dependencies": {
+    "async": "^2.6.1",
     "md5-file": "^4.0.0",
     "mime": "^2.3.1",
     "mongodb": "^3.1.6",
