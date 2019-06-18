@@ -143,6 +143,29 @@ export default class GridStore {
   }
 
   /**
+   * Returns the contents of a file from the GridFS.
+   * @param {string} path
+   */
+  pathByContent(path: string): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      let data = [];
+      const file = await this.readFileStreamByPath(path);
+
+      file.on('error', (error) => {
+        reject(error.toString());
+      });
+
+      file.on('data', chunk => {
+        data.push(chunk);
+      });
+
+      file.on('end', () => {
+        resolve(Buffer.concat([...data]));
+      });
+    });
+  }
+
+  /**
    * Save the File from the GridFs to the filesystem and get the Path back
    * @param {string} id
    * @param {IDownloadOptions} options
@@ -267,10 +290,10 @@ export default class GridStore {
    * @return {Promise<boolean>}
    */
   public delete(id: string): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.bucket.delete(new ObjectID(id), (async (err) => {
         if (err) {
-          reject(err);
+          return reject(err);
         }
         resolve(true);
       }));

@@ -1,6 +1,6 @@
 {
   "name": "gridfs-store",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "description": "Uses the native GridFSBucket-Api from the new MongoDB NodeJS Driver and wrap it as Promise-Objects",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "test": "ts-node ./test.ts"
   },
   "author": "Oleg Bogdanov",
   "license": "GPL-3.0",
@@ -29,21 +30,21 @@
     "async"
   ],
   "dependencies": {
-    "async": "^2.6.1",
+    "async": "^2.6.2",
     "md5-file": "^4.0.0",
-    "mime": "^2.3.1",
-    "mongodb": "^3.1.6",
-    "os-tmpdir": "^1.0.2",
+    "mime": "^2.4.1",
+    "mongodb": "^3.2.2",
+    "os-tmpdir": "^2.0.0",
     "unique-filename": "^1.1.1"
   },
   "devDependencies": {
-    "@types/mime": "^2.0.0",
-    "@types/mongodb": "^3.1.9",
-    "@types/node": "^10.11.3",
+    "@types/mime": "^2.0.1",
+    "@types/mongodb": "^3.1.22",
+    "@types/node": "^11.13.0",
     "@types/os-tmpdir": "^1.0.0",
-    "rimraf": "^2.6.2",
-    "ts-node": "^7.0.1",
-    "tslint": "^5.11.0",
-    "typescript": "^3.1.1"
+    "rimraf": "^2.6.3",
+    "ts-node": "^8.0.3",
+    "tslint": "^5.15.0",
+    "typescript": "^3.4.1"
   }
 }
